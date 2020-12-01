@@ -1,41 +1,46 @@
-import React, {useState} from "react";
+import React, { useState, useMemo } from "react";
 import { useDropzone } from "react-dropzone";
-import styled from "styled-components";
 import XLSX from "xlsx";
 import axios from "axios";
 import Button from "../Button";
-import {toast} from 'react-toastify'; 
-toast.configure()
-//axios.defaults.baseURL = 'http://localhost:1337';
+import { toast } from "react-toastify";
+import CircularLoader from "../Container";
 
-const getColor = (props) => {
-  if (props.isDragAccept) {
-    return "#00e676";
-  }
-  if (props.isDragReject) {
-    return "#ff1744";
-  }
-  if (props.isDragActive) {
-    return "#2196f3";
-  }
-  return "#eeeeee";
+// Cấu hình thông báo toast
+toast.configure();
+
+const baseStyle = {
+  flex: 1,
+  margin: "50px",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  padding: "20px",
+  borderWidth: 2,
+  borderRadius: 2,
+  borderColor: "#9d9d9d",
+  borderStyle: "dashed",
+  backgroundColor: "#fafafa",
+  color: "#9d9d9d",
+  outline: "none",
+  transition: "border .24s ease-in-out",
 };
 
-const Container = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px;
-  border-width: 2px;
-  border-radius: 2px;
-  border-color: ${(props) => getColor(props)};
-  border-style: dashed;
-  background-color: #fafafa;
-  color: #bdbdbd;
-  outline: none;
-  transition: border 0.24s ease-in-out;
-`;
+const activeStyle = {
+  borderColor: "#2196f3",
+  color: "#2196f3",
+};
+
+const acceptStyle = {
+  borderColor: "#00e676",
+  color: "#00e676",
+};
+
+const rejectStyle = {
+  borderColor: "#ff1744",
+  color: "#ff1744",
+};
+
 
 async function getSlice(data) {
   let promises = [];
@@ -48,10 +53,9 @@ async function getSlice(data) {
         .then((result) => {
           //console.log(result.data);
           if (result.data.statusCode === "10000") {
-          
-            toast.success(result.data.message, {autoClose:false});
+            toast.success(result.data.message, { autoClose: false });
           } else {
-            toast.error(result.data.message, {autoClose:false});
+            toast.error(result.data.message, { autoClose: false });
           }
         })
         .catch((err) => {
@@ -125,6 +129,7 @@ const UploadFile = () => {
 
   //
   const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
   //
 
   const _files = acceptedFiles.map((file) => {
@@ -176,7 +181,7 @@ const UploadFile = () => {
             datas.push(record);
           }
         });
-        setData(datas)
+        setData(datas);
       };
       if (rABS) reader.readAsBinaryString(file);
       else reader.readAsArrayBuffer(file);
@@ -189,27 +194,57 @@ const UploadFile = () => {
       alert("Vui lòng upload File DATA đúng định dạng.");
       return;
     }
+
+    setLoading(true);
     getSlice(data)
-      .then(() => console.log("all data processed"))
+      .then(() => {
+        console.log("all data processed");
+        setLoading(false);
+      })
       .catch((err) => console.error(err));
   };
 
+  const style = useMemo(
+    () => ({
+      ...baseStyle,
+      ...(isDragActive ? activeStyle : {}),
+      ...(isDragAccept ? acceptStyle : {}),
+      ...(isDragReject ? rejectStyle : {}),
+    }),
+    [isDragActive, isDragReject, isDragAccept]
+  );
+
   return (
     <div className="container">
-      <Container
-        {...getRootProps({ isDragActive, isDragAccept, isDragReject })}
-      >
-        <input {...getInputProps()} />
-        <p>Kéo thả File vào đây</p>
-        <p>Hoặc Click vào đây để chọn File</p>
-      </Container>
-      <aside>
-        <h4>Files</h4>
-        <ul>{_files}</ul>
-      </aside>
-      <Button primary onClick={onClickHandler}>
-        Upload Data
-      </Button>
+      {loading ? (
+        <CircularLoader size={64} />
+      ) : (
+        <>
+          <div className="app__logo">
+            <img
+              src="https://res.cloudinary.com/nghiango/image/upload/v1606835576/luudecor/luudecor_b6t1xd.png"
+              alt=""
+              width="70%"
+            />
+          </div>
+          <div
+            {...getRootProps({
+              style
+            })}
+          >
+            <input {...getInputProps()} />
+            <p>Kéo thả File vào đây</p>
+            <p>Hoặc Click vào đây để chọn File</p>
+          </div>
+          <aside>
+            <h4>Files</h4>
+            <ul>{_files}</ul>
+          </aside>
+          <Button primary onClick={onClickHandler}>
+            Upload Data
+          </Button>
+        </>
+      )}
     </div>
   );
 };
